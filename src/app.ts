@@ -5,6 +5,7 @@ import notFound from "./middleware/notFound";
 
 import { applySecurity } from "./middleware/security";
 import router from "./router";
+import { RetellWebhookRoutes } from "./webhooks/retell.router";
 
 const app: Application = express();
 
@@ -14,6 +15,9 @@ app.use(express.json());
 app.use(cookieParser());
 
 applySecurity(app);
+
+// Webhooks (external services) - no /api/v1 prefix
+app.use("/webhooks/retell", RetellWebhookRoutes);
 
 app.use("/api/v1", router);
 

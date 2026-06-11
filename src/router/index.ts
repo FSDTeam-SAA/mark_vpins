@@ -3,6 +3,7 @@ import userRouter from '../modules/user/user.router'
 import authRouter from '../modules/auth/auth.router'
 import { LeadRoutes } from '../modules/lead/lead.router'
 import { VINValidationRoutes } from '../modules/vinValidation/vinValidation.router'
+import { CallLogRoutes } from '../modules/callLog/callLog.router'
 
 const router = Router()
 
@@ -23,6 +24,10 @@ const moduleRoutes = [
     path: '/vin',
     route: VINValidationRoutes,
   },
+  {
+    path: '/call-logs',
+    route: CallLogRoutes 
+  }
 ]
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route))
