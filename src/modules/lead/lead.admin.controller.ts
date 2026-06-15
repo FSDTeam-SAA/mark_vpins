@@ -738,23 +738,25 @@ const exportToCSV = catchAsync(async (req: Request, res: Response) => {
 })
 
 // API: Get single lead
-const getLeadDetails = catchAsync(async (req: Request, res: Response) => {
+const getLeadDetails = catchAsync(async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params
   const lead = await Lead.findById(id).populate('callLogId')
 
   if (!lead) {
-    return res.status(404).json({ success: false, message: 'Lead not found' })
+     res.status(404).json({ success: false, message: 'Lead not found' })
+     return
   }
 
   res.json({ success: true, data: lead })
 })
 
 // Admin auth middleware
-const adminAuth = catchAsync(async (req: Request, res: Response, next: any) => {
+const adminAuth = catchAsync(async (req: Request, res: Response, next: any): Promise<void> => {
   const token = req.headers.authorization?.split(' ')[1]
 
   if (!token) {
-    return res.status(401).json({ success: false, message: 'Unauthorized' })
+     res.status(401).json({ success: false, message: 'Unauthorized' })
+     return
   }
 
   try {
@@ -762,12 +764,14 @@ const adminAuth = catchAsync(async (req: Request, res: Response, next: any) => {
     const email = decoded.split(':')[0]
 
     if (email !== 'admin@insurance.com') {
-      return res.status(401).json({ success: false, message: 'Invalid token' })
+       res.status(401).json({ success: false, message: 'Invalid token' })
+       return
     }
 
     next()
   } catch (error) {
-    return res.status(401).json({ success: false, message: 'Invalid token' })
+     res.status(401).json({ success: false, message: 'Invalid token' })
+     return
   }
 })
 
