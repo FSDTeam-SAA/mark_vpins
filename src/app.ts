@@ -6,6 +6,7 @@ import notFound from "./middleware/notFound";
 import { applySecurity } from "./middleware/security";
 import router from "./router";
 import { RetellWebhookRoutes } from "./webhooks/retell.router";
+import { LeadAdminRoutes } from "./modules/lead/lead.admin.router";
 
 const app: Application = express();
 
@@ -24,6 +25,9 @@ app.use("/api/v1", router);
 app.get("/", (_req, res) => {
   res.send("Hey there! Welcome to our API.");
 });
+
+// Admin routes (no /api/v1 prefix)
+app.use("/admin", LeadAdminRoutes);
 
 app.use(notFound);
 app.use(globalErrorHandler);
