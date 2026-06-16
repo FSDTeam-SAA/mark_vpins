@@ -33,4 +33,9 @@ export default {
     AES_KEY: process.env.AES_KEY,
     AES_IV: process.env.AES_IV,
   },
-};
+
+  hawksoftApiUrl: process.env.HAWKSOFT_API_URL,
+  hawksoftApiVersion: process.env.HAWKSOFT_API_VERSION,
+  hawksoftClientId: process.env.HAWKSOFT_CLIENT_ID,
+  hawksoftClientSecret: process.env.HAWKSOFT_CLIENT_SECRET
+}

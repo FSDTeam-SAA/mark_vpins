@@ -32,4 +32,6 @@ router.delete('/:id', LeadController.deleteLead)
 
 router.post('/:id/sync-InsuredMine', LeadController.syncToInsuredMine)
 
+router.post('/:id/sync-hawksoft', LeadController.syncToHawkSoft)
+
 export const LeadRoutes = router
