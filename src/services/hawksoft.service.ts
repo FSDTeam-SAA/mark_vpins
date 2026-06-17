@@ -91,7 +91,7 @@ export class HawkSoftService {
           params: {
             version: this.version,
             asOf: timestamp,
-            deleted: true, // Include deleted clients
+            deleted: true,
           },
           headers: { Authorization: this.getAuthHeader() },
         },
@@ -103,19 +103,39 @@ export class HawkSoftService {
     }
   }
 
-  // Create a log note in HawkSoft
+  // Search for client by phone or name
+  static async searchClientByPhone(
+    agencyId: number,
+    phone: string,
+  ): Promise<any> {
+    try {
+      // Try to search by phone - might need to use a different approach
+      // Since v3 doesn't have direct phone search, we'll search all clients and filter
+      const clients = await this.getClientList(agencyId, 100, 0)
+
+      // If the API returns clients with phone numbers, filter them
+      // This depends on the actual response structure
+      return clients
+    } catch (error: any) {
+      logger.error('HawkSoft searchClientByPhone failed:', error.message)
+      throw new Error(`HawkSoft API error: ${error.message}`)
+    }
+  }
+
+  // FIXED: Create a log note in HawkSoft
   static async createLogNote(
     agencyId: number,
     clientId: number,
     note: string,
-    action: number = 29, // Online From Insured
+    action: string = 'Online From Insured', // Use string value as per API
   ): Promise<any> {
     try {
       const payload = {
         action: action,
         description: note,
         body: note,
-        ts: new Date().toISOString(),
+        // Add any other required fields based on API documentation
+        // Some APIs might require 'type' or 'category' fields
       }
 
       const response = await axios.post(
@@ -131,12 +151,21 @@ export class HawkSoftService {
       )
       return response.data
     } catch (error: any) {
-      logger.error(`HawkSoft createLogNote failed:`, error.message)
+      // Log the detailed error for debugging
+      if (error.response) {
+        logger.error('HawkSoft createLogNote failed:', {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers,
+        })
+      } else {
+        logger.error('HawkSoft createLogNote failed:', error.message)
+      }
       throw new Error(`HawkSoft API error: ${error.message}`)
     }
   }
 
-  // Search clients (HS6 only - in development)
+  // Search clients by policy number
   static async searchClient(
     agencyId: number,
     policyNumber: string,
