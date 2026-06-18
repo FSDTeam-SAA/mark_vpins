@@ -7,6 +7,8 @@ import { TLead } from './lead.interface'
 import { HawkSoftService } from '../../services/hawksoft.service'
 import logger from '../../logger'
 import sendResponse from '../../utils/sendResponse'
+import catchAsync from '../../utils/catchAsync'
+import { Request, Response } from 'express'
 
 const createLead = async (payload: TCreateLeadInput): Promise<TLead> => {
   // Check if lead with same phone already exists
@@ -117,58 +119,45 @@ const syncToHawkSoft = catchAsync(async (req: Request, res: Response) => {
 
   // Get HawkSoft agency ID
   const agencies = await HawkSoftService.getAgencies()
+  console.log('HawkSoft Agencies:', agencies)
+
   if (agencies.length === 0) {
     throw new AppError('No HawkSoft agencies available', httpStatus.BAD_REQUEST)
   }
   const agencyId = agencies[0]
+  console.log('Using Agency ID:', agencyId)
 
-  // Since we don't have a client ID, we need to either:
-  // 1. Search for existing client by phone (if possible)
-  // 2. Or create a log note with the lead info
-  // 3. Or use a default client ID (1 is often the main agency client)
+  // Get client list - returns array of client IDs
+  const clientIds = await HawkSoftService.getClientList(agencyId, 10, 0)
+  console.log('Available Client IDs (first 5):', clientIds.slice(0, 5))
 
-  // Try to find if client exists with this phone
-  // For now, using clientId 1 as placeholder - but this might not work
-  // You should either search for the client or create one
-  const clientId = 1 // This needs to be replaced with actual client search/creation
-
-  // Create the log note with structured data
-  const noteData = {
-    name: lead.name,
-    phone: lead.phone,
-    email: lead.email || 'N/A',
-    insuranceType: lead.insuranceType,
-    notes: lead.notes || '',
+  if (!clientIds || clientIds.length === 0) {
+    throw new AppError(
+      'No clients found in HawkSoft agency',
+      httpStatus.BAD_REQUEST,
+    )
   }
 
-  // Format the note as a readable string
-  const formattedNote = `
+  // Use the first client ID
+  const clientId = clientIds[0]
+  console.log('Using Client ID for log note:', clientId)
+
+  // Format the note with lead information
+  const noteData = `
 New Lead from AI Receptionist
 ─────────────────────────────
-Name: ${noteData.name}
-Phone: ${noteData.phone}
-Email: ${noteData.email}
-Insurance Type: ${noteData.insuranceType}
-${noteData.notes ? `\nNotes: ${noteData.notes}` : ''}
+Name: ${lead.name}
+Phone: ${lead.phone}
+Email: ${lead.email || 'N/A'}
+Insurance Type: ${lead.insuranceType}
+${lead.vehicleDetails?.vin ? `VIN: ${lead.vehicleDetails.vin}` : ''}
+${lead.notes ? `\nNotes: ${lead.notes}` : ''}
 ─────────────────────────────
 ${new Date().toLocaleString()}
   `.trim()
 
-  try {
-    await HawkSoftService.createLogNote(
-      agencyId,
-      clientId,
-      formattedNote,
-      'Online From Insured', // This is the action description
-    )
-  } catch (error: any) {
-    // Log the error but don't fail the sync completely
-    logger.error('Failed to create HawkSoft log note:', error)
-    throw new AppError(
-      `Failed to sync to HawkSoft: ${error.message}`,
-      httpStatus.INTERNAL_SERVER_ERROR,
-    )
-  }
+  // Create the log note
+  await HawkSoftService.createLogNote(agencyId, clientId, noteData)
 
   // Update lead with sync status
   const updatedLead = await Lead.findByIdAndUpdate(

@@ -83,53 +83,57 @@ const deleteLead = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-const syncToInsuredMine = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params
-  const result = await LeadService.syncToInsuredMine(id)
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Lead synced to InsuredMine successfully',
-    data: result,
-  })
-})
-
-// Add this method to your existing LeadController
 
 const syncToHawkSoft = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  
+  const { id } = req.params
+
   // Get lead from database
-  const lead = await Lead.findById(id);
+  const lead = await Lead.findById(id)
   if (!lead) {
     throw new AppError('Lead not found', httpStatus.NOT_FOUND)
   }
 
-  // Get HawkSoft agency ID (you may need to store this or get from config)
-  const agencies = await HawkSoftService.getAgencies();
+  // Get HawkSoft agency ID
+  const agencies = await HawkSoftService.getAgencies()
+  console.log('HawkSoft Agencies:', agencies)
+
   if (agencies.length === 0) {
     throw new AppError('No HawkSoft agencies available', httpStatus.BAD_REQUEST)
   }
-  const agencyId = agencies[0];
+  const agencyId = agencies[0]
+  console.log('Using Agency ID:', agencyId)
 
-  // Search for existing client by phone
-  // Note: HawkSoft API v3 doesn't have direct phone search yet,
-  // you might need to search by name or policy number
-  // For now, we'll create a log note and sync lead data
+  // Get client list - returns array of client IDs
+  const clientIds = await HawkSoftService.getClientList(agencyId, 10, 0)
+  console.log('Available Client IDs:', clientIds)
 
-  // Create a log note in HawkSoft
-  const note = `
-    New lead from AI Receptionist
-    Name: ${lead.name}
-    Phone: ${lead.phone}
-    Email: ${lead.email || 'N/A'}
-    Insurance Type: ${lead.insuranceType}
-    ${lead.vehicleDetails?.vin ? `VIN: ${lead.vehicleDetails.vin}` : ''}
-    ${lead.notes ? `Notes: ${lead.notes}` : ''}
-  `;
+  if (!clientIds || clientIds.length === 0) {
+    throw new AppError(
+      'No clients found in HawkSoft agency',
+      httpStatus.BAD_REQUEST,
+    )
+  }
 
-  await HawkSoftService.createLogNote(agencyId, 1, note); // clientId 1 is placeholder
+  // Use the first client ID
+  const clientId = clientIds[0]
+  console.log('Using Client ID for log note:', clientId)
+
+  // Format the note with lead information
+  const noteData = `
+New Lead from AI Receptionist
+─────────────────────────────
+Name: ${lead.name}
+Phone: ${lead.phone}
+Email: ${lead.email || 'N/A'}
+Insurance Type: ${lead.insuranceType}
+${lead.vehicleDetails?.vin ? `VIN: ${lead.vehicleDetails.vin}` : ''}
+${lead.notes ? `\nNotes: ${lead.notes}` : ''}
+─────────────────────────────
+${new Date().toLocaleString()}
+  `.trim()
+
+  // Create the log note
+  await HawkSoftService.createLogNote(agencyId, clientId, noteData)
 
   // Update lead with sync status
   const updatedLead = await Lead.findByIdAndUpdate(
@@ -139,16 +143,16 @@ const syncToHawkSoft = catchAsync(async (req: Request, res: Response) => {
       syncedToHawkSoft: true,
       syncedAt: new Date(),
     },
-    { new: true }
-  );
+    { new: true },
+  )
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Lead synced to HawkSoft successfully',
     data: updatedLead,
-  });
-});
+  })
+})
 
 export const LeadController = {
   createLead,
@@ -157,6 +161,6 @@ export const LeadController = {
   getLeadByPhone,
   updateLead,
   deleteLead,
-  syncToInsuredMine,
+  // syncToInsuredMine,
   syncToHawkSoft,
 }
