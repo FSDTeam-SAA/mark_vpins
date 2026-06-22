@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { Request, Response, Router } from 'express'
 import { LeadController } from './lead.controller'
 import validateRequest from '../../middleware/validateRequest'
 import {
@@ -8,7 +8,7 @@ import {
   validateVinSchema,
 } from './lead.validation'
 import sendResponse from '../../utils/sendResponse'
-import { httpStatus } from 'http-status';
+import httpStatus from 'http-status';
 import { HawkSoftService } from '../../services/hawksoft.service'
 import catchAsync from '../../utils/catchAsync'
 
@@ -34,7 +34,7 @@ router.patch(
 
 router.delete('/:id', LeadController.deleteLead)
 
-router.post('/:id/sync-InsuredMine', LeadController.syncToInsuredMine)
+// router.post('/:id/sync-InsuredMine', LeadController.syncToInsuredMine)
 
 router.post('/:id/sync-hawksoft', LeadController.syncToHawkSoft)
 
@@ -49,20 +49,20 @@ router.get('/test-hawksoft', catchAsync(async (req: Request, res: Response) => {
 
     if (agencies.length > 0) {
       const agencyId = agencies[0];
-      
+
       // Test getting clients - this returns an array of client IDs
       const clientIds = await HawkSoftService.getClientList(agencyId, 5, 0);
       console.log('Client IDs (first 5):', clientIds.slice(0, 5));
-      
+
       if (clientIds && clientIds.length > 0) {
         // Use the first client ID from the array
         const clientId = clientIds[0];
         console.log('Using Client ID:', clientId);
-        
+
         const testNote = 'Test log note from integration at ' + new Date().toISOString();
-        
+
         const result = await HawkSoftService.createLogNote(agencyId, clientId, testNote);
-        
+
         sendResponse(res, {
           statusCode: httpStatus.OK,
           success: true,

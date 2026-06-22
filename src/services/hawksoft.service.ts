@@ -227,11 +227,14 @@ export class HawkSoftService {
 
         console.error('Request payload that failed:', error.config?.data)
 
-        logger.error('HawkSoft createLogNote failed:', {
-          status: error.response.status,
-          data: error.response.data,
-          message: error.message,
-        })
+        logger.error(
+          {
+            status: error.response.status,
+            data: error.response.data,
+            message: error.message,
+          },
+          'HawkSoft createLogNote failed:',
+        )
 
         throw new Error(
           `HawkSoft API error: ${error.response.data?.message || error.response.statusText || error.message}`,
