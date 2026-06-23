@@ -52,6 +52,21 @@ export const createLeadSchema = z.object({
     notes: z.string().optional(),
     callLogId: z.string().optional(),
     callSummary: z.string().optional(),
+    dateOfBirth: z
+      .string()
+      .optional()
+      .refine((val) => val === undefined || !isNaN(Date.parse(val)), {
+        message: 'Invalid date format',
+      }),
+    hasDog: z.boolean().optional().default(false),
+    numberOfDogs: z.number().int().min(0).optional(),
+    dogBreed: z.string().trim().optional(),
+    lastRoofReplaced: z
+      .string()
+      .optional()
+      .refine((val) => val === undefined || !isNaN(Date.parse(val)), {
+        message: 'Invalid date format',
+      }),
   }),
 })
 
@@ -78,6 +93,21 @@ export const updateLeadSchema = z.object({
   params: z.object({
     id: z.string(),
   }),
+  dateOfBirth: z
+    .string()
+    .optional()
+    .refine((val) => val === undefined || !isNaN(Date.parse(val)), {
+      message: 'Invalid date format',
+    }),
+  hasDog: z.boolean().optional(),
+  numberOfDogs: z.number().int().min(0).optional(),
+  dogBreed: z.string().trim().optional(),
+  lastRoofReplaced: z
+    .string()
+    .optional()
+    .refine((val) => val === undefined || !isNaN(Date.parse(val)), {
+      message: 'Invalid date format',
+    }),
 })
 
 // Get lead by phone validation

@@ -52,6 +52,29 @@ const LeadSchema = new Schema<TLead, ILeadModel>(
       enum: ['Phone Call', 'Web', 'Chat', 'Referral'],
       default: 'Phone Call',
     },
+    // New fields
+    dateOfBirth: {
+      type: Date,
+      required: false,
+    },
+    hasDog: {
+      type: Boolean,
+      default: false,
+    },
+    numberOfDogs: {
+      type: Number,
+      min: 0,
+      required: false,
+    },
+    dogBreed: {
+      type: String,
+      trim: true,
+      required: false,
+    },
+    lastRoofReplaced: {
+      type: Date,
+      required: false,
+    },
     vehicleDetails: VehicleDetailsSchema,
     propertyDetails: PropertyDetailsSchema,
     businessName: { type: String, trim: true },
@@ -73,10 +96,22 @@ const LeadSchema = new Schema<TLead, ILeadModel>(
   },
 )
 
+// Pre-save hook to clear dog fields if hasDog is false
+LeadSchema.pre('save', function (next) {
+  // If hasDog is false or undefined, clear dog-related fields
+  if (!this.hasDog) {
+    this.numberOfDogs = undefined
+    this.dogBreed = undefined
+  }
+  next()
+})
+
 // Indexes for faster lookups
 LeadSchema.index({ phone: 1, createdAt: -1 })
 LeadSchema.index({ insuredMineId: 1 })
 LeadSchema.index({ status: 1 })
+LeadSchema.index({ dateOfBirth: 1 }) // Optional: for date-based queries
+LeadSchema.index({ hasDog: 1 }) // Optional: for filtering by dog ownership
 
 // Static method to check if phone exists
 LeadSchema.statics.isPhoneExists = async function (

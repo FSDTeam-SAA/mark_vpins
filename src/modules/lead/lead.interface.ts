@@ -64,6 +64,12 @@ export interface TLead {
   // Timestamps
   createdAt?: Date
   updatedAt?: Date
+
+  dateOfBirth?: Date
+  hasDog?: boolean
+  numberOfDogs?: number
+  dogBreed?: string
+  lastRoofReplaced?: Date
 }
 
 export interface ILeadModel extends Model<TLead> {
