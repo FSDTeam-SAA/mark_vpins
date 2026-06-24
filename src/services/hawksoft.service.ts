@@ -105,17 +105,56 @@ export class HawkSoftService {
     }
   }
 
-  // Search for client by phone or name
-  static async searchClientByPhone(
+  // Search for clients by phone or name
+  // Note: Since HawkSoft doesn't support server-side filtering by phone/name,
+  // we have to fetch details for a subset of clients to find a match.
+  static async searchClients(
     agencyId: number,
-    phone: string,
-  ): Promise<any> {
+    query: { phone?: string; name?: string },
+    limit: number = 20,
+  ): Promise<any[]> {
     try {
-      const clients = await this.getClientList(agencyId, 100, 0)
-      return clients
+      const clientIds = await this.getClientList(agencyId, limit, 0);
+      const matchingClients: any[] = [];
+
+      for (const clientId of clientIds) {
+        const client = await this.getClient(agencyId, clientId);
+
+        let match = false;
+
+        // Match by phone
+        if (query.phone) {
+          const searchPhone = query.phone.replace(/\D/g, '');
+          const clientPhones = [
+            client.details?.homePhone,
+            client.details?.workPhone,
+            client.details?.mobilePhone,
+            ...(client.people?.map(p => p.phone) || [])
+          ].filter(Boolean).map(p => p.replace(/\D/g, ''));
+
+          if (clientPhones.some(p => p.includes(searchPhone))) {
+            match = true;
+          }
+        }
+
+        // Match by name
+        if (query.name && !match) {
+          const searchName = query.name.toLowerCase();
+          const clientName = `${client.details?.firstName} ${client.details?.lastName}`.toLowerCase();
+          if (clientName.includes(searchName)) {
+            match = true;
+          }
+        }
+
+        if (match) {
+          matchingClients.push(client);
+        }
+      }
+
+      return matchingClients;
     } catch (error: any) {
-      logger.error('HawkSoft searchClientByPhone failed:', error.message)
-      throw new Error(`HawkSoft API error: ${error.message}`)
+      logger.error('HawkSoft searchClients failed:', error.message);
+      throw new Error(`HawkSoft API error: ${error.message}`);
     }
   }
 
@@ -299,8 +338,34 @@ export class HawkSoftService {
     }
   }
 
-  // Search clients by policy number
-  static async searchClient(
+  // Get policies for a specific client
+  static async getPolicies(
+    agencyId: number,
+    clientId: number,
+  ): Promise<any[]> {
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/vendor/agency/${agencyId}/client/${clientId}/policies`,
+        {
+          params: { version: this.version },
+          headers: { Authorization: this.getAuthHeader() },
+        },
+      )
+      return response.data
+    } catch (error: any) {
+      logger.error(`HawkSoft getPolicies for client ${clientId} failed:`, error.message)
+      // Some versions of the API might return policies within the client details instead
+      try {
+        const client = await this.getClient(agencyId, clientId)
+        return client.policies || []
+      } catch (innerError) {
+        throw new Error(`HawkSoft API error: ${error.message}`)
+      }
+    }
+  }
+
+  // Get policy details by policy number across the agency
+  static async getPolicyByNumber(
     agencyId: number,
     policyNumber: string,
   ): Promise<any> {
@@ -311,13 +376,17 @@ export class HawkSoftService {
           params: {
             version: this.version,
             policyNumber: policyNumber,
+            include: 'details,policies'
           },
           headers: { Authorization: this.getAuthHeader() },
         },
       )
+
+      // The search might return multiple clients if they share a policy number (rare but possible)
+      // Or it might return the policy data structure directly depending on the version
       return response.data
     } catch (error: any) {
-      logger.error('HawkSoft searchClient failed:', error.message)
+      logger.error(`HawkSoft getPolicyByNumber ${policyNumber} failed:`, error.message)
       throw new Error(`HawkSoft API error: ${error.message}`)
     }
   }

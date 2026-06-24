@@ -5,6 +5,7 @@ import { LeadRoutes } from '../modules/lead/lead.router'
 import { VINValidationRoutes } from '../modules/vinValidation/vinValidation.router'
 import { CallLogRoutes } from '../modules/callLog/callLog.router'
 import { ContactRoutes } from '../modules/contact/contact.routes'
+import { HawkSoftRouter } from '../modules/hawksoft/hawksoft.router'
 
 const router = Router()
 
@@ -27,11 +28,15 @@ const moduleRoutes = [
   },
   {
     path: '/call-logs',
-    route: CallLogRoutes 
+    route: CallLogRoutes
   },
   {
     path: '/contacts',
     route: ContactRoutes
+  },
+  {
+    path: '/hawksoft',
+    route: HawkSoftRouter
   }
 ]
 
